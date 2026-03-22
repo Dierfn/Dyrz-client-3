@@ -7,44 +7,50 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Fix git line endings
+        run: git config --global core.autocrlf input
 
-      - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: >-
-            git
-            mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-ninja
-            mingw-w64-x86_64-qt6-base
-            mingw-w64-x86_64-qt6-networkauth
-            mingw-w64-x86_64-qt6-imageformats
-            mingw-w64-x86_64-qt6-svg
-            mingw-w64-x86_64-extra-cmake-modules
-            mingw-w64-x86_64-zlib
-            mingw-w64-x86_64-libarchive
-            mingw-w64-x86_64-quazip-qt6
-            mingw-w64-x86_64-cmark
-            mingw-w64-x86_64-qrencode
+      - uses: actions/checkout@v4
 
       - name: Unzip source
         shell: powershell
         run: Expand-Archive -Path "dyrz-client-src.zip" -DestinationPath "dyrz-extracted" -Force
 
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          pacboy: >-
+            toolchain:p
+            cmake:p
+            ninja:p
+            qt6-base:p
+            qt6-networkauth:p
+            qt6-imageformats:p
+            qt6-svg:p
+            qt6-tools:p
+            extra-cmake-modules:p
+            zlib:p
+            libarchive:p
+            quazip-qt6:p
+            cmark:p
+            tomlplusplus:p
+            qrencode:p
+            vulkan-headers:p
+
       - name: Configure CMake
         shell: msys2 {0}
         run: |
           SRC=$(find dyrz-extracted -name "CMakeLists.txt" | xargs grep -l "^project" | head -1 | xargs dirname)
-          echo "Found source at: $SRC"
+          echo "Source found at: $SRC"
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DLauncher_Name=DyrzClient \
             -DLauncher_DisplayName="Dyrz Client" \
             -DLauncher_APP_BINARY_NAME=dyrzclient \
             -DCMAKE_INSTALL_PREFIX=install \
+            -DCMAKE_OBJDUMP=/ucrt64/bin/objdump.exe \
             -S "$SRC"
 
       - name: Build
