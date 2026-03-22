@@ -28,10 +28,11 @@ jobs:
             mingw-w64-x86_64-libarchive
             mingw-w64-x86_64-quazip-qt6
             mingw-w64-x86_64-cmark
+            mingw-w64-x86_64-qrencode
 
       - name: Unzip source
-        run: Expand-Archive -Path "dyrz-client-src.zip" -DestinationPath "dyrz-extracted" -Force
         shell: powershell
+        run: Expand-Archive -Path "dyrz-client-src.zip" -DestinationPath "dyrz-extracted" -Force
 
       - name: Configure CMake
         shell: msys2 {0}
