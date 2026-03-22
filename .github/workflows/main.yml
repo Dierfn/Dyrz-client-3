@@ -62,3 +62,4 @@ jobs:
           name: DyrzClient-Windows
           path: build/dyrzclient.exe
           retention-days: 30
+          
