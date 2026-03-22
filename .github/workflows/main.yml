@@ -1,0 +1,49 @@
+name: Build Dyrz Client
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.2'
+          host: windows
+          target: desktop
+          arch: win64_msvc2019_64
+          modules: 'qtnetworkauth qt5compat qtimageformats'
+          cache: true
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v4
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}" `
+            -DLauncher_Name=DyrzClient `
+            -DLauncher_DisplayName="Dyrz Client" `
+            -DLauncher_APP_BINARY_NAME=dyrzclient
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Upload exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: DyrzClient-Windows
+          path: build/dyrzclient.exe
+          retention-days: 30
