@@ -6,52 +6,61 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-qt6-base
+            mingw-w64-x86_64-qt6-networkauth
+            mingw-w64-x86_64-qt6-imageformats
+            mingw-w64-x86_64-qt6-svg
+            mingw-w64-x86_64-extra-cmake-modules
+            mingw-w64-x86_64-zlib
+            mingw-w64-x86_64-libarchive
+            mingw-w64-x86_64-quazip-qt6
+            mingw-w64-x86_64-cmark
+
       - name: Unzip source
-        run: 7z x dyrz-client-src.zip -o"extracted"
+        run: 7z x dyrz-client-src.zip -odyrz-extracted
 
-      - name: Install ECM via pip
-        run: pip install extra-cmake-modules
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.7.2'
-          host: windows
-          target: desktop
-          arch: win64_msvc2019_64
-          modules: 'qtnetworkauth qt5compat qtimageformats'
-          cache: true
-
-      - name: Set up MSVC
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: amd64
-
-      - name: Install Ninja
-        uses: seanmiddleditch/gha-setup-ninja@v4
-
-      - name: Find and configure CMake
-        shell: bash
+      - name: Find source directory
+        id: srcdir
         run: |
-          src=$(find extracted -name "CMakeLists.txt" | xargs grep -l "^project" | head -1 | xargs dirname)
-          echo "Source found at: $src"
+          SRC=$(find dyrz-extracted -name "CMakeLists.txt" | xargs grep -l "^project" | head -1 | xargs dirname)
+          echo "Found: $SRC"
+          echo "src=$SRC" >> $GITHUB_OUTPUT
+
+      - name: Configure CMake
+        run: |
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}" \
             -DLauncher_Name=DyrzClient \
             -DLauncher_DisplayName="Dyrz Client" \
             -DLauncher_APP_BINARY_NAME=dyrzclient \
-            -S "$src"
+            -DCMAKE_INSTALL_PREFIX=install \
+            -S ${{ steps.srcdir.outputs.src }}
 
       - name: Build
-        run: cmake --build build --config Release --parallel
+        run: cmake --build build --parallel
 
-      - name: Upload exe
+      - name: Install
+        run: cmake --install build
+
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: DyrzClient-Windows
-          path: build/dyrzclient.exe
+          path: install/
           retention-days: 30
