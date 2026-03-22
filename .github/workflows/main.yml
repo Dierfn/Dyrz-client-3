@@ -7,14 +7,28 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - name: Fix git line endings
-        run: git config --global core.autocrlf input
-
       - uses: actions/checkout@v4
 
       - name: Unzip source
         shell: powershell
         run: Expand-Archive -Path "dyrz-client-src.zip" -DestinationPath "dyrz-extracted" -Force
+
+      - name: Init submodules
+        shell: powershell
+        run: |
+          cd dyrz-extracted/dyrz-src
+          git init
+          git submodule update --init --recursive
+        continue-on-error: true
+
+      - name: Download missing submodules manually
+        shell: powershell
+        run: |
+          $dest = "dyrz-extracted/dyrz-src/libraries/libnbtplusplus"
+          if (!(Test-Path "$dest/CMakeLists.txt")) {
+            Remove-Item -Recurse -Force $dest -ErrorAction SilentlyContinue
+            git clone https://github.com/PrismLauncher/libnbtplusplus.git $dest
+          }
 
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
@@ -38,6 +52,7 @@ jobs:
             tomlplusplus:p
             qrencode:p
             vulkan-headers:p
+            clang:p
 
       - name: Configure CMake
         shell: msys2 {0}
@@ -51,6 +66,7 @@ jobs:
             -DLauncher_APP_BINARY_NAME=dyrzclient \
             -DCMAKE_INSTALL_PREFIX=install \
             -DCMAKE_OBJDUMP=/ucrt64/bin/objdump.exe \
+            -DENABLE_LTO=OFF \
             -S "$SRC"
 
       - name: Build
