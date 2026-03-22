@@ -12,12 +12,8 @@ jobs:
       - name: Unzip source
         run: 7z x dyrz-client-src.zip -o"extracted"
 
-      - name: Install ECM
-        run: |
-          git clone https://invent.kde.org/frameworks/extra-cmake-modules.git ecm
-          cmake -B ecm-build -S ecm -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
-          cmake --build ecm-build --parallel
-          cmake --install ecm-build --prefix ecm-install
+      - name: Install ECM via pip
+        run: pip install extra-cmake-modules
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -38,19 +34,16 @@ jobs:
         uses: seanmiddleditch/gha-setup-ninja@v4
 
       - name: Find and configure CMake
+        shell: bash
         run: |
-          $src = Get-ChildItem -Recurse -Filter "CMakeLists.txt" extracted |
-            Where-Object { (Get-Content $_.FullName) -match "project" } |
-            Select-Object -First 1 |
-            Select-Object -ExpandProperty DirectoryName
-          Write-Host "Source found at: $src"
-          cmake -B build -G Ninja `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }};${{ github.workspace }}/ecm-install" `
-            -DCMAKE_MODULE_PATH="${{ github.workspace }}/ecm-install/share/ECM/cmake" `
-            -DLauncher_Name=DyrzClient `
-            -DLauncher_DisplayName="Dyrz Client" `
-            -DLauncher_APP_BINARY_NAME=dyrzclient `
+          src=$(find extracted -name "CMakeLists.txt" | xargs grep -l "^project" | head -1 | xargs dirname)
+          echo "Source found at: $src"
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}" \
+            -DLauncher_Name=DyrzClient \
+            -DLauncher_DisplayName="Dyrz Client" \
+            -DLauncher_APP_BINARY_NAME=dyrzclient \
             -S "$src"
 
       - name: Build
@@ -62,4 +55,3 @@ jobs:
           name: DyrzClient-Windows
           path: build/dyrzclient.exe
           retention-days: 30
-          
