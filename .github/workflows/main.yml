@@ -13,14 +13,6 @@ jobs:
         shell: powershell
         run: Expand-Archive -Path "dyrz-client-src.zip" -DestinationPath "dyrz-extracted" -Force
 
-      - name: Init submodules
-        shell: powershell
-        run: |
-          cd dyrz-extracted/dyrz-src
-          git init
-          git submodule update --init --recursive
-        continue-on-error: true
-
       - name: Download missing submodules manually
         shell: powershell
         run: |
@@ -67,6 +59,8 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=install \
             -DCMAKE_OBJDUMP=/ucrt64/bin/objdump.exe \
             -DENABLE_LTO=OFF \
+            -DCLANG_FORMAT_PROG=false \
+            -DCMAKE_POLICY_DEFAULT_CMP0177=NEW \
             -S "$SRC"
 
       - name: Build
