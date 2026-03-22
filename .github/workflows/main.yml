@@ -8,8 +8,14 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
+
+      - name: Unzip and find source
+        run: |
+          Expand-Archive -Path "dyrz-client-src.zip" -DestinationPath "extracted" -Force
+          Write-Host "=== All files found ==="
+          Get-ChildItem -Recurse -Filter "CMakeLists.txt" | Select-Object FullName
+          Write-Host "=== Top level ==="
+          Get-ChildItem extracted
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -29,14 +35,20 @@ jobs:
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@v4
 
-      - name: Configure CMake
+      - name: Find and configure CMake
         run: |
+          $src = Get-ChildItem -Recurse -Filter "CMakeLists.txt" | 
+            Where-Object { $_.Directory.Name -ne "tests" } |
+            Select-Object -First 1 |
+            Select-Object -ExpandProperty DirectoryName
+          Write-Host "Found source at: $src"
           cmake -B build -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}" `
             -DLauncher_Name=DyrzClient `
             -DLauncher_DisplayName="Dyrz Client" `
-            -DLauncher_APP_BINARY_NAME=dyrzclient
+            -DLauncher_APP_BINARY_NAME=dyrzclient `
+            -S "$src"
 
       - name: Build
         run: cmake --build build --config Release --parallel
