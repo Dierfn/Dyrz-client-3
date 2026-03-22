@@ -6,9 +6,6 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
     steps:
       - uses: actions/checkout@v4
 
@@ -33,29 +30,28 @@ jobs:
             mingw-w64-x86_64-cmark
 
       - name: Unzip source
-        run: 7z x dyrz-client-src.zip -odyrz-extracted
-
-      - name: Find source directory
-        id: srcdir
-        run: |
-          SRC=$(find dyrz-extracted -name "CMakeLists.txt" | xargs grep -l "^project" | head -1 | xargs dirname)
-          echo "Found: $SRC"
-          echo "src=$SRC" >> $GITHUB_OUTPUT
+        run: Expand-Archive -Path "dyrz-client-src.zip" -DestinationPath "dyrz-extracted" -Force
+        shell: powershell
 
       - name: Configure CMake
+        shell: msys2 {0}
         run: |
+          SRC=$(find dyrz-extracted -name "CMakeLists.txt" | xargs grep -l "^project" | head -1 | xargs dirname)
+          echo "Found source at: $SRC"
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DLauncher_Name=DyrzClient \
             -DLauncher_DisplayName="Dyrz Client" \
             -DLauncher_APP_BINARY_NAME=dyrzclient \
             -DCMAKE_INSTALL_PREFIX=install \
-            -S ${{ steps.srcdir.outputs.src }}
+            -S "$SRC"
 
       - name: Build
+        shell: msys2 {0}
         run: cmake --build build --parallel
 
       - name: Install
+        shell: msys2 {0}
         run: cmake --install build
 
       - name: Upload
