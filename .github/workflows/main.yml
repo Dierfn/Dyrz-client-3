@@ -61,13 +61,14 @@ jobs:
             -DENABLE_LTO=OFF \
             -DCLANG_FORMAT_PROG=false \
             -DCMAKE_POLICY_DEFAULT_CMP0177=NEW \
+            -DCMAKE_CXX_FLAGS="-Wno-error -Wno-implicit-fallthrough -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-parameter -Wno-sign-compare -Wno-reorder" \
+            -DCMAKE_C_FLAGS="-Wno-error -Wno-implicit-fallthrough -Wno-deprecated-declarations" \
             -S "$SRC"
 
       - name: Strip problematic flags from build files
         shell: msys2 {0}
         run: |
-          find build -name "*.ninja" | xargs sed -i 's/-mguard=cf//g; s/-Werror//g' 2>/dev/null || true
-          find build -name "flags.make" | xargs sed -i 's/-mguard=cf//g; s/-Werror//g' 2>/dev/null || true
+          find build -name "*.ninja" | xargs sed -i 's/-mguard=cf//g; s/-Werror[^ ]*//g' 2>/dev/null || true
           echo "Flags stripped"
 
       - name: Build
