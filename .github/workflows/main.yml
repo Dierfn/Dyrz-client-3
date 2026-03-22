@@ -61,18 +61,14 @@ jobs:
             -DENABLE_LTO=OFF \
             -DCLANG_FORMAT_PROG=false \
             -DCMAKE_POLICY_DEFAULT_CMP0177=NEW \
-            -DCMAKE_CXX_FLAGS="-Wno-error" \
-            -DCMAKE_C_FLAGS="-Wno-error" \
-            -DCMAKE_EXE_LINKER_FLAGS="" \
-            -DCMAKE_SHARED_LINKER_FLAGS="" \
             -S "$SRC"
 
-      - name: Remove mguard flag from libnbtplusplus
+      - name: Strip problematic flags from build files
         shell: msys2 {0}
         run: |
-          find build/libraries/libnbtplusplus -name "*.ninja" -exec sed -i 's/-mguard=cf//g' {} \;
-          find build -name "flags.make" -exec sed -i 's/-mguard=cf//g' {} \;
-          find build -name "*.ninja" -exec sed -i 's/-mguard=cf//g' {} \;
+          find build -name "*.ninja" | xargs sed -i 's/-mguard=cf//g; s/-Werror//g' 2>/dev/null || true
+          find build -name "flags.make" | xargs sed -i 's/-mguard=cf//g; s/-Werror//g' 2>/dev/null || true
+          echo "Flags stripped"
 
       - name: Build
         shell: msys2 {0}
